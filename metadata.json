@@ -1,0 +1,5 @@
+{
+  "name": "Krish AI Builder",
+  "description": "A free, powerful AI web app builder that generates full-stack React applications instantly using the Gemini API. Features live preview, code editing, and responsive design testing.",
+  "requestFramePermissions": []
+}
