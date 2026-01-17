@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileCode2, FileJson, Hash, Code, FolderOpen, ChevronDown } from 'lucide-react';
+import { FileCode2, FileJson, Hash, Code, FolderOpen, ChevronDown, FileType } from 'lucide-react';
 import { VirtualFile } from '../types';
 
 interface FileExplorerProps {
@@ -10,10 +10,23 @@ interface FileExplorerProps {
 
 export const FileExplorer: React.FC<FileExplorerProps> = ({ files, activeFile, onFileSelect }) => {
   const getIcon = (fileName: string) => {
-    if (fileName.endsWith('.css')) return <Hash size={14} className="text-blue-400" />;
-    if (fileName.endsWith('.tsx') || fileName.endsWith('.js')) return <FileCode2 size={14} className="text-yellow-400" />;
+    // CSS - # icon, sky blue
+    if (fileName.endsWith('.css')) return <Hash size={14} className="text-sky-400" />;
+    
+    // HTML - <> icon, orange
     if (fileName.endsWith('.html')) return <Code size={14} className="text-orange-500" />;
-    return <FileCode2 size={14} className="text-slate-400" />;
+    
+    // React/TypeScript - file code icon, blue
+    if (fileName.endsWith('.tsx') || fileName.endsWith('.ts')) return <FileCode2 size={14} className="text-blue-400" />;
+    
+    // JavaScript/JSX - file code icon, yellow
+    if (fileName.endsWith('.js') || fileName.endsWith('.jsx')) return <FileCode2 size={14} className="text-yellow-400" />;
+    
+    // JSON
+    if (fileName.endsWith('.json')) return <FileJson size={14} className="text-yellow-200" />;
+    
+    // Default
+    return <FileType size={14} className="text-slate-400" />;
   };
 
   return (

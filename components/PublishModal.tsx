@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from './Button';
-import { X, Globe, Check, Loader2, Rocket, Layout, Settings, Sparkles, AlertCircle, Download, Terminal, ExternalLink } from 'lucide-react';
+import { X, Globe, Check, Loader2, Rocket, Layout, Settings, Sparkles, AlertCircle, Download, Terminal, ExternalLink, ShoppingCart } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { DeploymentStatus, DeploymentConfig } from '../types';
 
@@ -121,7 +121,7 @@ export const PublishModal: React.FC<PublishModalProps> = ({ isOpen, onClose, cod
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 overflow-y-auto custom-scrollbar">
           {activeTab === 'publish' ? (
             step === 'idle' ? (
               <>
@@ -168,7 +168,7 @@ export const PublishModal: React.FC<PublishModalProps> = ({ isOpen, onClose, cod
                         setConfig({ ...config, domain: e.target.value.toLowerCase().replace(/[^a-z0-9.-]/g, '') });
                         setError('');
                       }}
-                      placeholder={config.type === 'subdomain' ? "my-cool-app" : "www.example.com"}
+                      placeholder={config.type === 'subdomain' ? "my-cool-app" : "example.com"}
                       className="flex-1 bg-black border border-lovable-border rounded-l-lg py-3 px-4 text-white focus:outline-none focus:ring-1 focus:ring-krish-500/50 focus:border-krish-500/50 transition-all placeholder-lovable-textDim"
                       autoFocus
                     />
@@ -184,17 +184,41 @@ export const PublishModal: React.FC<PublishModalProps> = ({ isOpen, onClose, cod
                     )}
                   </div>
                   {config.type === 'custom' && (
-                    <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg flex items-start gap-2">
-                      <Sparkles className="w-4 h-4 text-yellow-500 mt-0.5" />
-                      <p className="text-xs text-yellow-200/80 leading-relaxed">
-                        Custom domains are available on the <strong>Pro Plan</strong>. 
-                        You will need to configure a CNAME record pointing to <code>publish.krish.ai</code>.
-                      </p>
+                    <div className="space-y-4">
+                        <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg flex items-start gap-2">
+                            <Sparkles className="w-4 h-4 text-yellow-500 mt-0.5 flex-shrink-0" />
+                            <p className="text-xs text-yellow-200/80 leading-relaxed">
+                            Custom domains are available on the <strong>Pro Plan</strong>. 
+                            You will need to configure a CNAME record pointing to <code>publish.krish.ai</code>.
+                            </p>
+                        </div>
+
+                        {/* GoDaddy Integration */}
+                        <div className="pt-2 pb-2 border-t border-lovable-border">
+                            <div className="flex items-center justify-between mb-3">
+                                <span className="text-xs font-semibold text-lovable-text">Don't have a domain yet?</span>
+                            </div>
+                            <a 
+                                href={`https://www.godaddy.com/domainsearch/find?checkAvail=1&domainToCheck=${config.domain || 'example.com'}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="group flex items-center justify-between w-full p-3 bg-[#1BDBDB] hover:bg-[#18c5c5] text-black rounded-lg transition-all"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <ShoppingCart size={18} className="text-black/70" />
+                                    <div className="flex flex-col items-start">
+                                        <span className="text-sm font-bold text-black">Buy on GoDaddy</span>
+                                        <span className="text-[10px] text-black/70 font-medium">Search & Register Instantly</span>
+                                    </div>
+                                </div>
+                                <ExternalLink size={16} className="text-black/60 group-hover:text-black transition-colors" />
+                            </a>
+                        </div>
                     </div>
                   )}
                 </div>
 
-                <div className="pt-4">
+                <div className="pt-2">
                   <Button 
                     variant="primary" 
                     className="w-full h-12 text-base shadow-lg shadow-krish-500/20 hover:shadow-krish-500/30 border-none"

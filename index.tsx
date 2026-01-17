@@ -2,6 +2,14 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 
+// Suppress benign ResizeObserver error commonly caused by Monaco Editor or Layout transitions
+const resizeObserverLoopErr = 'ResizeObserver loop completed with undelivered notifications.';
+window.addEventListener('error', (e) => {
+  if (e.message === resizeObserverLoopErr) {
+    e.stopImmediatePropagation();
+  }
+});
+
 const rootElement = document.getElementById('root');
 if (!rootElement) {
   throw new Error("Could not find root element to mount to");

@@ -3,6 +3,7 @@ import { ChatInterface } from './components/ChatInterface';
 import { PreviewWindow } from './components/PreviewWindow';
 import { CodeEditor } from './components/CodeEditor';
 import { PublishModal } from './components/PublishModal';
+import { InfoModal } from './components/InfoModals';
 import { FileExplorer } from './components/FileExplorer';
 import { AuthPage } from './components/AuthPage';
 import { Message, GeneratedApp, Project, VirtualFile } from './types';
@@ -27,6 +28,9 @@ export default function App() {
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState('');
+  
+  // Info Modals State
+  const [infoModalType, setInfoModalType] = useState<'about' | 'team' | 'policy' | null>(null);
 
   // Derived State
   const currentProject = useMemo(() => 
@@ -281,6 +285,12 @@ export default function App() {
             <LogOut size={12} />
             Sign Out
           </button>
+          
+          <div className="flex items-center justify-between px-2 pt-2 border-t border-white/5 mt-2">
+            <button onClick={() => setInfoModalType('about')} className="text-[10px] text-lovable-textDim hover:text-white transition-colors">About</button>
+            <button onClick={() => setInfoModalType('team')} className="text-[10px] text-lovable-textDim hover:text-white transition-colors">Team</button>
+            <button onClick={() => setInfoModalType('policy')} className="text-[10px] text-lovable-textDim hover:text-white transition-colors">Privacy</button>
+          </div>
         </div>
       </div>
 
@@ -459,6 +469,12 @@ export default function App() {
         isOpen={isPublishModalOpen}
         onClose={() => setIsPublishModalOpen(false)}
         code={currentProject?.currentCode || ''}
+      />
+      
+      <InfoModal 
+        isOpen={!!infoModalType}
+        type={infoModalType}
+        onClose={() => setInfoModalType(null)}
       />
     </div>
   );
