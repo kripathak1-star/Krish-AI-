@@ -5,6 +5,7 @@ import { PreviewWindow } from './components/PreviewWindow';
 import { CodeEditor } from './components/CodeEditor';
 import { PublishModal } from './components/PublishModal';
 import { InfoModal } from './components/InfoModals';
+import { ReferralModal } from './components/ReferralModal';
 import { FileExplorer } from './components/FileExplorer';
 import { AuthPage } from './components/AuthPage';
 import { TermsModal } from './components/TermsModal';
@@ -13,7 +14,7 @@ import { generateAppCode } from './services/geminiService';
 import { saveProjects, loadProjects, createNewProject } from './utils/storage';
 import { splitCode, mergeCode } from './utils/fileHelpers';
 import { collaborationService } from './services/collaborationService';
-import { Code, Zap, Rocket, Plus, Menu, Trash2, Edit2, Columns, Maximize2, LogOut, Sparkles, Terminal, Wifi, Command, Settings } from 'lucide-react';
+import { Code, Zap, Rocket, Plus, Menu, Trash2, Edit2, Columns, Maximize2, LogOut, Sparkles, Terminal, Wifi, Command, Settings, Gift } from 'lucide-react';
 
 function timeAgo(timestamp: number): string {
   const seconds = Math.floor((Date.now() - timestamp) / 1000);
@@ -39,6 +40,7 @@ export default function App() {
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
+  const [isReferralModalOpen, setIsReferralModalOpen] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState('');
   
@@ -258,6 +260,19 @@ export default function App() {
 
         {/* User Footer */}
         <div className="p-4 border-t border-white/5 bg-black/20">
+          
+          {/* New Referral Button */}
+          <button 
+            onClick={() => setIsReferralModalOpen(true)}
+            className="w-full flex items-center justify-between px-3 py-2.5 mb-3 rounded-xl bg-gradient-to-r from-indigo-600/10 to-purple-600/10 border border-indigo-500/20 hover:border-indigo-500/40 hover:from-indigo-600/20 hover:to-purple-600/20 transition-all group"
+          >
+             <div className="flex items-center gap-2">
+                <Gift size={14} className="text-indigo-400 group-hover:scale-110 transition-transform" />
+                <span className="text-xs font-semibold text-indigo-100">Unlock Pro</span>
+             </div>
+             <div className="flex h-1.5 w-1.5 rounded-full bg-indigo-500 animate-pulse"></div>
+          </button>
+
           <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-white/5 border border-white/5 mb-3">
             <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-fuchsia-600 to-pink-600 flex items-center justify-center text-xs font-bold text-white shadow-inner">
               K
@@ -387,6 +402,7 @@ export default function App() {
       </main>
 
       <PublishModal isOpen={isPublishModalOpen} onClose={() => setIsPublishModalOpen(false)} code={currentProject?.currentCode || ''} />
+      <ReferralModal isOpen={isReferralModalOpen} onClose={() => setIsReferralModalOpen(false)} />
       <InfoModal isOpen={!!infoModalType} type={infoModalType} onClose={() => setInfoModalType(null)} />
     </div>
   );

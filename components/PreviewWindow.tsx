@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { ViewMode } from '../types';
 import { Button } from './Button';
-import { Smartphone, Monitor, Tablet, RefreshCw, Download, Lock, RotateCw, Bug, Sparkles } from 'lucide-react';
+import { Smartphone, Monitor, Tablet, RefreshCw, Download, Lock, RotateCw, Bug, Sparkles, XCircle, AlertTriangle } from 'lucide-react';
 
 interface PreviewWindowProps {
   code: string | null;
@@ -46,6 +46,15 @@ export const PreviewWindow: React.FC<PreviewWindowProps> = ({ code, version, pro
     </script>`);
   }, [code]);
 
+  const getDebugTips = (err: ErrorDetails) => {
+    if (err.message.includes('is not defined')) return "Check variable spelling or imports. If using a third-party library, make sure it's loaded.";
+    if (err.message.includes('Minified React error')) return "A React internal error occurred. Check your JSX structure or hooks usage.";
+    if (err.type === 'SyntaxError') return "Look for missing braces }, parentheses ), or closing tags </>.";
+    if (err.type === 'TypeError' && err.message.includes('null')) return "You are trying to access a property on a null value. Check if your state or ref is initialized.";
+    if (err.message.includes('Element type is invalid')) return "Check your imports. You might be importing a default export as a named export or vice versa.";
+    return "Try reviewing the code around the reported line number. The AI can often spot the issue automatically.";
+  };
+
   return (
     <div className="flex flex-col h-full w-full bg-[#0E0E11] rounded-2xl overflow-hidden border border-white/5 shadow-2xl relative ring-1 ring-black/50">
       {/* Browser Toolbar - Sleek Dark Mode */}
@@ -83,15 +92,42 @@ export const PreviewWindow: React.FC<PreviewWindowProps> = ({ code, version, pro
 
       <div className="flex-1 relative bg-[#09090B] flex justify-center overflow-hidden w-full h-full">
         {error && (
-          <div className="absolute top-4 right-4 z-50 animate-slide-up">
-            <div className="bg-[#18181B] border border-red-500/20 rounded-xl p-4 shadow-2xl flex flex-col gap-3 max-w-sm backdrop-blur-md">
-              <div className="flex items-center gap-2 text-red-400 font-semibold text-sm">
-                <Bug size={16} /> Runtime Error
+          <div className="absolute top-4 right-4 z-50 animate-slide-up max-w-md w-full px-4">
+            <div className="bg-[#18181B] border border-red-500/20 rounded-xl p-4 shadow-2xl flex flex-col gap-3 backdrop-blur-md ring-1 ring-red-500/10">
+              <div className="flex items-center gap-2 text-red-400 font-semibold text-sm border-b border-red-500/10 pb-2">
+                <AlertTriangle size={16} />
+                <span>{error.type || 'Runtime Error'}</span>
+                {(error.line !== undefined && error.line > 0) && (
+                   <span className="text-xs text-white/40 font-mono ml-auto px-2 py-0.5 bg-white/5 rounded">Ln {error.line}, Col {error.column}</span>
+                )}
+                <button onClick={() => setError(null)} className="ml-2 text-white/20 hover:text-white transition-colors">
+                  <XCircle size={14} />
+                </button>
               </div>
-              <p className="text-xs text-white/70 font-mono break-words bg-red-500/5 p-2 rounded border border-red-500/10">{error.message}</p>
+              
+              <div className="text-xs text-white/80 font-mono break-words bg-red-500/5 p-3 rounded border border-red-500/10 leading-relaxed border-l-2 border-l-red-500">
+                {error.message}
+              </div>
+
+              {/* Smart Debugging Tips */}
+              <div className="bg-white/5 rounded-lg p-3 border border-white/5">
+                <div className="flex items-center gap-2 mb-1">
+                  <Bug size={12} className="text-indigo-400" />
+                  <span className="text-[10px] text-white/40 uppercase tracking-wider font-bold">Debugging Tip</span>
+                </div>
+                <p className="text-xs text-white/60 leading-relaxed">
+                   {getDebugTips(error)}
+                </p>
+              </div>
+
               {onAutoFix && (
-                <Button onClick={() => { onAutoFix(`Fix this error: ${error.message}`); setError(null); }} variant="primary" size="sm" className="w-full bg-indigo-600 border-none text-white hover:bg-indigo-500">
-                  <Sparkles size={12} className="mr-2" /> Auto Fix
+                <Button 
+                  onClick={() => { onAutoFix(`Fix this error: ${error.message}. Error Type: ${error.type}. Line: ${error.line}`); setError(null); }} 
+                  variant="primary" 
+                  size="sm" 
+                  className="w-full bg-indigo-600 hover:bg-indigo-500 border-none text-white shadow-lg shadow-indigo-500/20 mt-1"
+                >
+                  <Sparkles size={12} className="mr-2" /> Auto Fix with AI
                 </Button>
               )}
             </div>

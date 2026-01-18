@@ -69,6 +69,7 @@
         align-items: center;
         justify-content: center;
         z-index: 9999;
+        transition: opacity 0.5s ease-out;
       }
 
       .logo-wrapper {
@@ -158,6 +159,19 @@
         letter-spacing: 0.05em;
       }
 
+      /* Error State */
+      .error-state .progress-bar {
+        background: #ef4444;
+        transform: translateX(0);
+        animation: none;
+      }
+      .error-state .loading-text {
+        color: #ef4444;
+      }
+      .error-state .loading-text::after {
+        display: none;
+      }
+
       /* Animations */
       @keyframes pulse-glow {
         0%, 100% { opacity: 0.5; transform: scale(1); }
@@ -208,6 +222,49 @@
         "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2"
       }
     }
+    </script>
+    <script>
+      // Global error handler for initialization
+      window.addEventListener('error', function(event) {
+        const loader = document.querySelector('.initial-loader');
+        const text = document.querySelector('.loading-text');
+        const bar = document.querySelector('.progress-container');
+        
+        // Ignore resize observer errors
+        if (event.message === 'ResizeObserver loop completed with undelivered notifications.') return;
+
+        if (loader && text) {
+          loader.classList.add('error-state');
+          text.innerText = "SYSTEM ERROR";
+          
+          const errorMsg = document.createElement('div');
+          errorMsg.style.color = 'rgba(255,255,255,0.5)';
+          errorMsg.style.fontSize = '10px';
+          errorMsg.style.marginTop = '10px';
+          errorMsg.style.fontFamily = 'monospace';
+          errorMsg.style.maxWidth = '300px';
+          errorMsg.style.textAlign = 'center';
+          errorMsg.innerText = event.message || "Unknown initialization error";
+          
+          if (!document.getElementById('err-display')) {
+            errorMsg.id = 'err-display';
+            bar.parentNode.insertBefore(errorMsg, bar.nextSibling);
+          }
+        }
+      });
+
+      // Timeout safety net
+      setTimeout(() => {
+        const root = document.getElementById('root');
+        // If root still has the loader inside it (React hasn't replaced it)
+        if (root && root.querySelector('.initial-loader')) {
+           console.warn("App initialization timeout");
+           const text = document.querySelector('.loading-text');
+           if (text && text.innerText === "INITIALIZING SYSTEMS") {
+             text.innerText = "LOADING TAKING LONGER...";
+           }
+        }
+      }, 5000);
     </script>
   </head>
   <body>

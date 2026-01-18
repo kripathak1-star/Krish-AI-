@@ -61,7 +61,7 @@ export const generateAppCode = async (
     }
 
     const response = await ai.models.generateContent({
-      model: imageBase64 ? 'gemini-2.5-flash-image' : 'gemini-3-pro-preview', // Use Vision model if image present
+      model: 'gemini-3-pro-preview', // Use Pro model for both text and vision tasks (coding)
       contents: { parts },
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,

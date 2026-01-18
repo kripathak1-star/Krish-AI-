@@ -1,15 +1,21 @@
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
-export default defineConfig({
-  plugins: [react()],
-  // IMPORTANT: This fixes the blank page on GitHub Pages by using relative paths
-  base: './', 
-  build: {
-    outDir: 'dist',
-    sourcemap: true,
-  },
-  optimizeDeps: {
-    exclude: ['lucide-react'],
-  },
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, (process as any).cwd(), '');
+  return {
+    plugins: [react()],
+    base: './',
+    build: {
+      outDir: 'dist',
+      sourcemap: true,
+    },
+    optimizeDeps: {
+      exclude: ['lucide-react'],
+    },
+    define: {
+      'process.env.API_KEY': JSON.stringify(env.API_KEY),
+      'process.env': {},
+    },
+  };
 });
