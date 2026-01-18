@@ -7,6 +7,7 @@ import { PublishModal } from './components/PublishModal';
 import { InfoModal } from './components/InfoModals';
 import { FileExplorer } from './components/FileExplorer';
 import { AuthPage } from './components/AuthPage';
+import { TermsModal } from './components/TermsModal'; // Import new modal
 import { Message, GeneratedApp, Project, VirtualFile, Collaborator } from './types';
 import { generateAppCode } from './services/geminiService';
 import { saveProjects, loadProjects, createNewProject } from './utils/storage';
@@ -36,6 +37,7 @@ function timeAgo(timestamp: number): string {
 }
 
 export default function App() {
+  const [hasAcceptedTerms, setHasAcceptedTerms] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
@@ -72,9 +74,15 @@ export default function App() {
     virtualFiles.find(f => f.name === activeFile)?.content || ''
   , [virtualFiles, activeFile]);
 
-  // Init & Auth Check
+  // Init & Auth/Terms Check
   useEffect(() => {
-    // Check auth
+    // Check Terms
+    const termsAccepted = localStorage.getItem('krish_ai_terms_accepted');
+    if (termsAccepted === 'true') {
+      setHasAcceptedTerms(true);
+    }
+
+    // Check Auth
     const auth = localStorage.getItem('krish_ai_auth');
     if (auth === 'true') {
       setIsAuthenticated(true);
@@ -97,13 +105,9 @@ export default function App() {
 
       const unsubscribe = collaborationService.subscribe((msg) => {
         if (msg.type === 'CODE_UPDATE') {
-          // If we receive a code update for the current project, update it
-          // Note: In a real app we'd use Operational Transformation or CRDTs to merge
           const { projectId, fileName, newCode } = msg.payload;
-          
           setProjects(prev => prev.map(p => {
             if (p.id === projectId) {
-              // Merge the specific file update
               const merged = mergeCode(p.currentCode, fileName, newCode);
               return { ...p, currentCode: merged, updatedAt: Date.now() };
             }
@@ -129,7 +133,6 @@ export default function App() {
         }
       });
 
-      // Cleanup inactive users
       const interval = setInterval(() => {
         const now = Date.now();
         setCollaborators(prev => prev.filter(c => now - c.lastActive < 10000));
@@ -149,6 +152,11 @@ export default function App() {
       saveProjects(projects);
     }
   }, [projects]);
+
+  const handleTermsAccept = () => {
+    localStorage.setItem('krish_ai_terms_accepted', 'true');
+    setHasAcceptedTerms(true);
+  };
 
   const handleLogin = () => {
     localStorage.setItem('krish_ai_auth', 'true');
@@ -183,7 +191,7 @@ export default function App() {
   const handleSendMessage = async (content: string, imageBase64?: string) => {
     if (!currentProject) return;
 
-    // Optimistic update for UI
+    // Optimistic update
     const userMsg: Message = { 
       role: 'user', 
       content, 
@@ -215,10 +223,8 @@ export default function App() {
         timestamp: Date.now()
       };
 
-      // Generate a project name if it's the first prompt
       let newName = currentProject.name;
       if (currentProject.messages.length === 0) {
-         // Simple heuristic: Use first few words
          newName = content.split(' ').slice(0, 4).join(' ') + '...';
       }
 
@@ -229,7 +235,7 @@ export default function App() {
               ...p,
               name: newName !== 'Untitled Project' ? newName : p.name,
               currentCode: result.html,
-              messages: [...p.messages, userMsg, assistantMsg], // Add both to ensure consistency
+              messages: [...p.messages, userMsg, assistantMsg],
               history: [...p.history, newHistoryItem],
               updatedAt: Date.now()
             };
@@ -237,7 +243,6 @@ export default function App() {
           return p;
         });
         
-        // Notify collaboration service of code update
         if (currentProjectId) {
            collaborationService.syncCode(currentProjectId, 'index.html', result.html);
         }
@@ -262,7 +267,6 @@ export default function App() {
   const handleCodeChange = (newContent: string | undefined) => {
     if (newContent === undefined || !currentProject) return;
     
-    // Only update if content is different to prevent loops
     if (newContent !== activeFileContent) {
       const mergedHtml = mergeCode(currentProject.currentCode, activeFile, newContent);
       
@@ -272,7 +276,6 @@ export default function App() {
         updatedAt: Date.now()
       } : p));
       
-      // Broadcast change
       collaborationService.syncCode(currentProjectId!, activeFile, newContent);
     }
   };
@@ -291,10 +294,17 @@ export default function App() {
     handleSendMessage(errorDescription);
   };
 
+  // 1. Check Terms First
+  if (!hasAcceptedTerms) {
+    return <TermsModal onAccept={handleTermsAccept} />;
+  }
+
+  // 2. Check Authentication
   if (!isAuthenticated) {
     return <AuthPage onLogin={handleLogin} />;
   }
 
+  // 3. Main App
   return (
     <div className="flex h-screen bg-lovable-bg text-lovable-text font-sans overflow-hidden">
       
