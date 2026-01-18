@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Message } from '../types';
 import { Button } from './Button';
-import { Send, Sparkles, ArrowUp, Layout, ListTodo, BarChart3, Image as ImageIcon, Paperclip, Mic, X } from 'lucide-react';
+import { Send, Sparkles, ArrowUp, Layout, ListTodo, BarChart3, Image as ImageIcon, Paperclip, Mic, X, Loader2 } from 'lucide-react';
 
 interface ChatInterfaceProps {
   messages: Message[];
@@ -17,6 +17,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [input, setInput] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isListening, setIsListening] = useState(false);
+  const [generationStep, setGenerationStep] = useState<string>('');
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -28,7 +29,25 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, isGenerating, generationStep]);
+
+  // Simulate "Thinking" steps
+  useEffect(() => {
+    if (isGenerating) {
+      setGenerationStep('Thinking...');
+      const t1 = setTimeout(() => setGenerationStep('Planning architecture...'), 1500);
+      const t2 = setTimeout(() => setGenerationStep('Writing code...'), 3000);
+      const t3 = setTimeout(() => setGenerationStep('Refining styles...'), 5000);
+      
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+        clearTimeout(t3);
+      };
+    } else {
+      setGenerationStep('');
+    }
+  }, [isGenerating]);
 
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -141,7 +160,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
             <div 
               className={`max-w-[90%] rounded-2xl px-5 py-3.5 text-sm leading-relaxed ${
                 msg.role === 'user' 
-                  ? 'bg-lovable-surface text-white border border-lovable-border' 
+                  ? 'bg-lovable-surface text-white border border-lovable-border shadow-md' 
                   : 'bg-transparent text-lovable-text pl-0'
               }`}
             >
@@ -162,12 +181,14 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         ))}
         
         {isGenerating && (
-          <div className="flex flex-col items-start space-y-2">
-            <span className="text-xs font-medium text-lovable-textDim uppercase tracking-wider">Krish AI</span>
-            <div className="flex items-center space-x-2 pl-0">
-               <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-               <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-               <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+          <div className="flex flex-col items-start space-y-3 animate-slide-up">
+            <span className="text-xs font-medium text-lovable-textDim uppercase tracking-wider flex items-center gap-2">
+              <Sparkles size={12} className="text-indigo-400" />
+              Krish AI
+            </span>
+            <div className="bg-lovable-surface border border-lovable-border rounded-xl px-4 py-3 flex items-center gap-3 shadow-lg">
+               <Loader2 size={16} className="text-indigo-400 animate-spin" />
+               <span className="text-sm text-lovable-text">{generationStep}</span>
             </div>
           </div>
         )}
@@ -179,7 +200,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         <div className="max-w-3xl mx-auto relative group">
           <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500/20 to-blue-500/20 rounded-2xl blur opacity-0 group-hover:opacity-100 transition duration-500"></div>
           
-          <form onSubmit={handleSubmit} className="relative bg-lovable-surface rounded-2xl border border-lovable-border shadow-2xl overflow-hidden">
+          <form onSubmit={handleSubmit} className="relative bg-lovable-surface rounded-2xl border border-lovable-border shadow-2xl overflow-hidden focus-within:ring-1 focus-within:ring-indigo-500/30 transition-all">
             
             {/* Image Preview */}
             {selectedImage && (
@@ -189,7 +210,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
                   <button 
                     type="button"
                     onClick={() => setSelectedImage(null)}
-                    className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover/image:opacity-100 transition-opacity"
+                    className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover/image:opacity-100 transition-opacity shadow-lg"
                   >
                     <X size={12} />
                   </button>
@@ -207,7 +228,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
               }}
               onKeyDown={handleKeyDown}
               placeholder={selectedImage ? "Describe what to change or build from this image..." : "Describe your dream app..."}
-              className="w-full bg-transparent text-white placeholder-lovable-textDim rounded-2xl pl-4 pr-32 py-4 focus:outline-none resize-none max-h-48 overflow-y-auto min-h-[56px]"
+              className="w-full bg-transparent text-white placeholder-lovable-textDim rounded-2xl pl-4 pr-32 py-4 focus:outline-none resize-none max-h-48 overflow-y-auto min-h-[56px] text-[15px]"
               rows={1}
             />
             
@@ -243,7 +264,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
               <button 
                 type="submit" 
                 disabled={(!input.trim() && !selectedImage) || isGenerating}
-                className="p-2 bg-white text-black rounded-xl hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                className="p-2 bg-white text-black rounded-xl hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
               >
                 <ArrowUp size={18} strokeWidth={3} />
               </button>
