@@ -1,116 +1,237 @@
+
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Krish AI Builder</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
+        darkMode: 'class',
         theme: {
           extend: {
             fontFamily: {
               sans: ['Inter', 'sans-serif'],
-              mono: ['JetBrains Mono', 'Menlo', 'Monaco', 'Courier New', 'monospace'],
+              mono: ['JetBrains Mono', 'monospace'],
             },
             colors: {
-              krish: {
-                50: '#eff6ff',
-                100: '#dbeafe',
-                200: '#bfdbfe',
-                300: '#93c5fd',
-                400: '#60a5fa',
-                500: '#3b82f6',
-                600: '#2563eb',
-                700: '#1d4ed8',
-                800: '#1e40af',
-                900: '#1e3a8a',
-                950: '#172554',
-              },
-              lovable: {
-                bg: '#000000',
-                sidebar: '#09090b',
-                surface: '#18181b',
-                border: '#27272a',
-                text: '#e4e4e7',
-                textMuted: '#a1a1aa',
-                textDim: '#71717a'
+              background: '#030305',
+              surface: '#0E0E11',
+              surfaceHighlight: '#18181B',
+              border: 'rgba(255, 255, 255, 0.08)',
+              primary: {
+                DEFAULT: '#6366f1',
+                glow: 'rgba(99, 102, 241, 0.5)'
               }
             },
             animation: {
-              'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-              'fade-in': 'fadeIn 0.5s ease-out forwards',
-              'slide-up': 'slideUp 0.5s ease-out forwards',
+              'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              'aurora': 'aurora 10s infinite linear',
             },
             keyframes: {
-              fadeIn: {
-                '0%': { opacity: '0' },
-                '100%': { opacity: '1' },
-              },
-              slideUp: {
-                '0%': { transform: 'translateY(20px)', opacity: '0' },
-                '100%': { transform: 'translateY(0)', opacity: '1' },
+              aurora: {
+                '0%': { backgroundPosition: '0% 50%' },
+                '50%': { backgroundPosition: '100% 50%' },
+                '100%': { backgroundPosition: '0% 50%' },
               }
             }
           },
         },
-        darkMode: 'class',
       }
     </script>
     <style>
       body {
-        background-color: #000000;
+        background-color: #030305;
         color: #e4e4e7;
         font-family: 'Inter', sans-serif;
+        margin: 0;
+        overflow: hidden;
       }
-      /* Loading Spinner for Initial Load */
+      
+      /* Cinematic Loader Styles */
       .initial-loader {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background-color: #030305;
+        /* Premium radial lighting effect */
+        background-image: 
+          radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.15) 0%, transparent 60%),
+          radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.08) 0%, transparent 50%);
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        height: 100vh;
-        width: 100vw;
-        background-color: #000000;
-        color: #3b82f6;
+        z-index: 9999;
       }
-      .spinner {
+
+      .logo-wrapper {
+        position: relative;
+        width: 80px;
+        height: 80px;
+        margin-bottom: 2.5rem;
+      }
+
+      /* Animated Glow behind logo */
+      .logo-glow {
+        position: absolute;
+        inset: -20px;
+        background: radial-gradient(circle, rgba(99, 102, 241, 0.4) 0%, transparent 70%);
+        filter: blur(20px);
+        animation: pulse-glow 3s ease-in-out infinite;
+      }
+
+      /* Main Logo Shape */
+      .logo-box {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #4f46e5, #7c3aed);
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 0 0 1px rgba(255,255,255,0.1), 0 20px 40px -10px rgba(99, 102, 241, 0.5);
+        animation: float 6s ease-in-out infinite;
+      }
+
+      .logo-icon {
         width: 40px;
         height: 40px;
-        border: 3px solid rgba(59, 130, 246, 0.3);
-        border-radius: 50%;
-        border-top-color: #3b82f6;
-        animation: spin 1s ease-in-out infinite;
+        color: white;
+        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
       }
-      @keyframes spin {
-        to { transform: rotate(360deg); }
+
+      .loading-text {
+        font-family: 'JetBrains Mono', monospace;
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 0.75rem;
+        letter-spacing: 0.25em;
+        text-transform: uppercase;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      
+      .loading-text::after {
+        content: '';
+        width: 4px;
+        height: 4px;
+        background: white;
+        border-radius: 50%;
+        animation: blink 1s steps(2) infinite;
+      }
+
+      /* Sleek Progress Bar */
+      .progress-container {
+        width: 160px;
+        height: 2px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 4px;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .progress-bar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 100%;
+        background: linear-gradient(90deg, transparent, #6366f1, #a855f7, transparent);
+        transform: translateX(-100%);
+        animation: shimmer 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      }
+
+      .version-tag {
+        position: absolute;
+        bottom: 2rem;
+        font-size: 0.65rem;
+        color: rgba(255, 255, 255, 0.2);
+        letter-spacing: 0.05em;
+      }
+
+      /* Animations */
+      @keyframes pulse-glow {
+        0%, 100% { opacity: 0.5; transform: scale(1); }
+        50% { opacity: 0.8; transform: scale(1.1); }
+      }
+
+      @keyframes float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
+      }
+
+      @keyframes blink {
+        0%, 100% { opacity: 0; }
+        50% { opacity: 1; }
+      }
+
+      @keyframes shimmer {
+        0% { transform: translateX(-100%); }
+        50% { transform: translateX(100%); }
+        100% { transform: translateX(100%); }
+      }
+      
+      /* Subtle Noise Texture */
+      .bg-noise {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        opacity: 0.03;
+        pointer-events: none;
+        z-index: 50;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
       }
     </style>
     <script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@18.2.0",
-    "react/": "https://esm.sh/react@18.2.0/",
-    "react-dom": "https://esm.sh/react-dom@18.2.0",
-    "react-dom/": "https://esm.sh/react-dom@18.2.0/",
-    "@google/genai": "https://esm.sh/@google/genai@^1.37.0",
-    "lucide-react": "https://esm.sh/lucide-react@0.294.0?deps=react@18.2.0",
-    "@monaco-editor/react": "https://esm.sh/@monaco-editor/react@4.6.0?deps=react@18.2.0",
-    "canvas-confetti": "https://esm.sh/canvas-confetti@1.9.2",
-    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
-    "vite": "https://esm.sh/vite@^7.3.1"
-  }
-}
-</script>
+    {
+      "imports": {
+        "react": "https://esm.sh/react@18.2.0",
+        "react/": "https://esm.sh/react@18.2.0/",
+        "react-dom": "https://esm.sh/react-dom@18.2.0",
+        "react-dom/": "https://esm.sh/react-dom@18.2.0/",
+        "@google/genai": "https://esm.sh/@google/genai@^1.37.0",
+        "lucide-react": "https://esm.sh/lucide-react@0.294.0?deps=react@18.2.0",
+        "@monaco-editor/react": "https://esm.sh/@monaco-editor/react@4.6.0?deps=react@18.2.0",
+        "canvas-confetti": "https://esm.sh/canvas-confetti@1.9.2",
+        "vite": "https://esm.sh/vite@^7.3.1",
+        "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2"
+      }
+    }
+    </script>
   </head>
   <body>
+    <div class="bg-noise"></div>
     <div id="root">
       <div class="initial-loader">
-        <div class="spinner"></div>
-        <p style="margin-top: 1rem; font-family: sans-serif; color: #71717a; font-size: 0.875rem;">Initializing Krish AI...</p>
+        <div class="logo-wrapper">
+          <div class="logo-glow"></div>
+          <div class="logo-box">
+            <!-- Sparkles Icon SVG -->
+            <svg class="logo-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>
+              <path d="M20 3v4" />
+              <path d="M22 5h-4" />
+              <path d="M4 17v2" />
+              <path d="M5 18H3" />
+            </svg>
+          </div>
+        </div>
+        <div class="loading-text">INITIALIZING SYSTEMS</div>
+        <div class="progress-container">
+          <div class="progress-bar"></div>
+        </div>
+        <div class="version-tag">V 1.0.0 &bull; POWERED BY GEMINI</div>
       </div>
     </div>
     <script type="module" src="./index.tsx"></script>
