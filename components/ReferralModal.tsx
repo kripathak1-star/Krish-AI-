@@ -11,14 +11,12 @@ interface ReferralModalProps {
 
 export const ReferralModal: React.FC<ReferralModalProps> = ({ isOpen, onClose }) => {
   const [copied, setCopied] = useState(false);
-  // Simulating user having 2 referrals already to show progress
   const [referralCount, setReferralCount] = useState(2);
+  const [referralLink, setReferralLink] = useState('');
   const totalRequired = 5;
-  const referralLink = "https://krish.ai/invite/alex-w82";
 
   useEffect(() => {
     if (isOpen) {
-      // Small celebration for opening the rewards hub
       confetti({
         particleCount: 50,
         spread: 60,
@@ -27,6 +25,24 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({ isOpen, onClose })
       });
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    // Generate a dynamic link based on the current URL
+    // This ensures it works on localhost, GitHub Pages, or custom domains
+    const baseUrl = window.location.origin + window.location.pathname;
+    
+    // Get or create a persistent user ID for the referral code
+    let userId = localStorage.getItem('krish_ai_user_id');
+    if (!userId) {
+      userId = Math.random().toString(36).substring(2, 9);
+      localStorage.setItem('krish_ai_user_id', userId);
+    }
+    
+    // Construct the link with a query parameter
+    // We replace any trailing slash to avoid double slashes
+    const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+    setReferralLink(`${cleanBaseUrl}?ref=${userId}`);
+  }, []);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(referralLink);

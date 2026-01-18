@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from './Button';
-import { ArrowRight, Github, Sparkles, Mail } from 'lucide-react';
+import { ArrowRight, Github, Sparkles, Mail, Gift } from 'lucide-react';
 
 interface AuthPageProps {
   onLogin: () => void;
@@ -11,13 +11,27 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [invitedBy, setInvitedBy] = useState<string | null>(null);
 
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    setMounted(true);
+    // Check for referral code in URL
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref');
+    if (ref) {
+      setInvitedBy(ref);
+      // Clean up URL without refreshing
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setTimeout(() => onLogin(), 1500);
+    // Simulate API delay
+    setTimeout(() => {
+      onLogin();
+    }, 1500);
   };
 
   return (
@@ -33,6 +47,16 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
 
       <div className={`w-full max-w-md p-8 relative z-10 transition-all duration-1000 ease-out transform ${mounted ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
         
+        {/* Invitation Badge */}
+        {invitedBy && (
+          <div className="mb-6 animate-slide-up flex justify-center">
+            <div className="bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border border-yellow-500/30 backdrop-blur-md rounded-full px-4 py-1.5 flex items-center gap-2 shadow-[0_0_20px_rgba(245,158,11,0.2)]">
+               <Gift size={14} className="text-yellow-400" />
+               <span className="text-xs font-semibold text-yellow-200">You've been invited! Get 2x Speed Free</span>
+            </div>
+          </div>
+        )}
+
         {/* Glass Card */}
         <div className="bg-[#09090b]/60 backdrop-blur-xl rounded-[32px] border border-white/10 shadow-2xl p-8 overflow-hidden relative group ring-1 ring-white/5">
           <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
@@ -80,7 +104,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
                 />
               </div>
               <Button type="submit" isLoading={isLoading} className="w-full h-12 bg-white hover:bg-gray-100 text-black border-none font-bold text-sm rounded-xl hover:shadow-[0_0_20px_rgba(255,255,255,0.3)] transition-all">
-                Sign In <ArrowRight size={16} className="ml-2" />
+                {invitedBy ? 'Join & Claim Reward' : 'Sign In'} <ArrowRight size={16} className="ml-2" />
               </Button>
             </form>
           </div>
