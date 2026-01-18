@@ -27,21 +27,27 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({ isOpen, onClose })
   }, [isOpen]);
 
   useEffect(() => {
-    // Generate a dynamic link based on the current URL
-    // This ensures it works on localhost, GitHub Pages, or custom domains
-    const baseUrl = window.location.origin + window.location.pathname;
-    
-    // Get or create a persistent user ID for the referral code
-    let userId = localStorage.getItem('krish_ai_user_id');
-    if (!userId) {
-      userId = Math.random().toString(36).substring(2, 9);
-      localStorage.setItem('krish_ai_user_id', userId);
+    // Robust link generation for GitHub Pages and other subpath deployments
+    try {
+        // Get or create a persistent user ID for the referral code
+        let userId = localStorage.getItem('krish_ai_user_id');
+        if (!userId) {
+        userId = Math.random().toString(36).substring(2, 9);
+        localStorage.setItem('krish_ai_user_id', userId);
+        }
+
+        // Use the current full URL as base to respect subpaths (like /repo-name/)
+        const url = new URL(window.location.href);
+        // Clear existing params to avoid stacking
+        url.search = ''; 
+        url.hash = ''; // Clear hash if any
+        url.searchParams.set('ref', userId);
+        
+        setReferralLink(url.toString());
+    } catch (e) {
+        // Fallback
+        setReferralLink(window.location.origin);
     }
-    
-    // Construct the link with a query parameter
-    // We replace any trailing slash to avoid double slashes
-    const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
-    setReferralLink(`${cleanBaseUrl}?ref=${userId}`);
   }, []);
 
   const handleCopy = () => {

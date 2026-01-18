@@ -1,6 +1,21 @@
 import { GoogleGenAI } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+let ai: GoogleGenAI | null = null;
+
+const getAiClient = () => {
+  if (!ai) {
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) {
+      console.error("API Key is missing. Please check your .env file or build configuration.");
+      // We don't throw immediately here to allow the UI to render and potentially show an error later
+      // or allow the user to input a key if we added that feature. 
+      // For now, we'll assume it's required for generation.
+      throw new Error("API Key is not configured.");
+    }
+    ai = new GoogleGenAI({ apiKey });
+  }
+  return ai;
+};
 
 const SYSTEM_INSTRUCTION = `
 You are Krish AI, an expert Senior Frontend Engineer and UI/UX Designer.
@@ -40,6 +55,7 @@ export const generateAppCode = async (
   imageBase64?: string
 ): Promise<{ html: string; explanation: string }> => {
   try {
+    const client = getAiClient();
     const parts: any[] = [];
     
     // Add Image if present (Vision to Code)
@@ -60,7 +76,7 @@ export const generateAppCode = async (
       parts.push({ text: fullPrompt });
     }
 
-    const response = await ai.models.generateContent({
+    const response = await client.models.generateContent({
       model: 'gemini-3-pro-preview', // Use Pro model for both text and vision tasks (coding)
       contents: { parts },
       config: {
@@ -78,8 +94,12 @@ export const generateAppCode = async (
       explanation: parsed.explanation || "Here is your generated app.",
     };
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Gemini API Error:", error);
+    // Return a more helpful error message
+    if (error.message?.includes('API Key')) {
+      throw new Error("API Key is missing or invalid. Please configure your environment.");
+    }
     throw new Error("Failed to generate app. Please try again.");
   }
 };
