@@ -1,20 +1,100 @@
-import React from 'react';
-import Editor from '@monaco-editor/react';
+
+import React, { useEffect, useRef } from 'react';
+import Editor, { Monaco } from '@monaco-editor/react';
+import { Collaborator } from '../types';
 
 interface CodeEditorProps {
   code: string;
   onChange: (value: string | undefined) => void;
+  collaborators?: Collaborator[];
+  onCursorChange?: (position: { lineNumber: number; column: number }) => void;
 }
 
-export const CodeEditor: React.FC<CodeEditorProps> = ({ code, onChange }) => {
+export const CodeEditor: React.FC<CodeEditorProps> = ({ 
+  code, 
+  onChange, 
+  collaborators = [], 
+  onCursorChange 
+}) => {
+  const editorRef = useRef<any>(null);
+  const monacoRef = useRef<Monaco | null>(null);
+  const decorationsRef = useRef<string[]>([]);
+
+  const handleEditorDidMount = (editor: any, monaco: Monaco) => {
+    editorRef.current = editor;
+    monacoRef.current = monaco;
+
+    editor.onDidChangeCursorPosition((e: any) => {
+      if (onCursorChange) {
+        onCursorChange({ lineNumber: e.position.lineNumber, column: e.position.column });
+      }
+    });
+  };
+
+  // Update decorations when collaborators change
+  useEffect(() => {
+    if (!editorRef.current || !monacoRef.current) return;
+
+    const newDecorations: any[] = [];
+    const styleElement = document.getElementById('remote-cursor-styles') || document.createElement('style');
+    styleElement.id = 'remote-cursor-styles';
+    let css = '';
+
+    collaborators.forEach(collab => {
+      if (!collab.cursorPosition) return;
+
+      // Create unique class for this user's cursor color
+      const className = `remote-cursor-${collab.id}`;
+      css += `
+        .${className} {
+          border-left: 2px solid ${collab.color};
+          position: absolute;
+        }
+        .${className}::after {
+          content: '${collab.name}';
+          position: absolute;
+          top: -18px;
+          left: 0;
+          background: ${collab.color};
+          color: #000;
+          font-size: 10px;
+          padding: 0 4px;
+          border-radius: 2px;
+          white-space: nowrap;
+          pointer-events: none;
+          font-weight: bold;
+        }
+      `;
+
+      newDecorations.push({
+        range: new monacoRef.current!.Range(
+          collab.cursorPosition.lineNumber, 
+          collab.cursorPosition.column, 
+          collab.cursorPosition.lineNumber, 
+          collab.cursorPosition.column
+        ),
+        options: { className: className }
+      });
+    });
+
+    styleElement.innerHTML = css;
+    if (!document.getElementById('remote-cursor-styles')) {
+      document.head.appendChild(styleElement);
+    }
+
+    decorationsRef.current = editorRef.current.deltaDecorations(decorationsRef.current, newDecorations);
+
+  }, [collaborators]);
+
   return (
-    <div className="h-full w-full">
+    <div className="h-full w-full relative group">
       <Editor
         height="100%"
         defaultLanguage="html"
         theme="vs-dark"
         value={code}
         onChange={onChange}
+        onMount={handleEditorDidMount}
         options={{
           minimap: { enabled: false },
           fontSize: 14,

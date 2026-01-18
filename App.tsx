@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { ChatInterface } from './components/ChatInterface';
 import { PreviewWindow } from './components/PreviewWindow';
@@ -6,11 +7,33 @@ import { PublishModal } from './components/PublishModal';
 import { InfoModal } from './components/InfoModals';
 import { FileExplorer } from './components/FileExplorer';
 import { AuthPage } from './components/AuthPage';
-import { Message, GeneratedApp, Project, VirtualFile } from './types';
+import { Message, GeneratedApp, Project, VirtualFile, Collaborator } from './types';
 import { generateAppCode } from './services/geminiService';
 import { saveProjects, loadProjects, createNewProject } from './utils/storage';
 import { splitCode, mergeCode } from './utils/fileHelpers';
-import { Code, Layers, Zap, Rocket, Plus, History, Menu, Trash2, Edit2, ChevronLeft, Layout, Box, LogOut, Sparkles, Terminal, Columns, Maximize2 } from 'lucide-react';
+import { collaborationService } from './services/collaborationService';
+import { Code, Layers, Zap, Rocket, Plus, History, Menu, Trash2, Edit2, ChevronLeft, Layout, Box, LogOut, Sparkles, Terminal, Columns, Maximize2, Users, Wifi } from 'lucide-react';
+
+function timeAgo(timestamp: number): string {
+  const seconds = Math.floor((Date.now() - timestamp) / 1000);
+  
+  let interval = seconds / 31536000;
+  if (interval > 1) return Math.floor(interval) + "y ago";
+  
+  interval = seconds / 2592000;
+  if (interval > 1) return Math.floor(interval) + "mo ago";
+  
+  interval = seconds / 86400;
+  if (interval > 1) return Math.floor(interval) + "d ago";
+  
+  interval = seconds / 3600;
+  if (interval > 1) return Math.floor(interval) + "h ago";
+  
+  interval = seconds / 60;
+  if (interval > 1) return Math.floor(interval) + "m ago";
+  
+  return "just now";
+}
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -29,6 +52,10 @@ export default function App() {
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState('');
   
+  // Collaboration State
+  const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
+  const [currentUser] = useState(collaborationService.getUserInfo());
+
   // Info Modals State
   const [infoModalType, setInfoModalType] = useState<'about' | 'team' | 'policy' | null>(null);
 
@@ -62,6 +89,59 @@ export default function App() {
       handleNewProject();
     }
   }, []);
+
+  // Initialize Collaboration Service
+  useEffect(() => {
+    if (isAuthenticated) {
+      collaborationService.join();
+
+      const unsubscribe = collaborationService.subscribe((msg) => {
+        if (msg.type === 'CODE_UPDATE') {
+          // If we receive a code update for the current project, update it
+          // Note: In a real app we'd use Operational Transformation or CRDTs to merge
+          const { projectId, fileName, newCode } = msg.payload;
+          
+          setProjects(prev => prev.map(p => {
+            if (p.id === projectId) {
+              // Merge the specific file update
+              const merged = mergeCode(p.currentCode, fileName, newCode);
+              return { ...p, currentCode: merged, updatedAt: Date.now() };
+            }
+            return p;
+          }));
+        }
+        else if (msg.type === 'JOIN' || msg.type === 'HEARTBEAT') {
+          setCollaborators(prev => {
+            const exists = prev.find(c => c.id === msg.senderId);
+            if (exists) {
+              return prev.map(c => c.id === msg.senderId ? { ...msg.payload, lastActive: Date.now() } : c);
+            }
+            return [...prev, { ...msg.payload, lastActive: Date.now() }];
+          });
+        }
+        else if (msg.type === 'LEAVE') {
+          setCollaborators(prev => prev.filter(c => c.id !== msg.senderId));
+        }
+        else if (msg.type === 'CURSOR_MOVE') {
+          setCollaborators(prev => prev.map(c => 
+            c.id === msg.senderId ? { ...c, ...msg.payload, lastActive: Date.now() } : c
+          ));
+        }
+      });
+
+      // Cleanup inactive users
+      const interval = setInterval(() => {
+        const now = Date.now();
+        setCollaborators(prev => prev.filter(c => now - c.lastActive < 10000));
+      }, 5000);
+
+      return () => {
+        unsubscribe();
+        clearInterval(interval);
+        collaborationService.leave();
+      };
+    }
+  }, [isAuthenticated]);
 
   // Auto-save
   useEffect(() => {
@@ -142,19 +222,27 @@ export default function App() {
          newName = content.split(' ').slice(0, 4).join(' ') + '...';
       }
 
-      setProjects(prev => prev.map(p => {
-        if (p.id === currentProjectId) {
-          return {
-            ...p,
-            name: newName !== 'Untitled Project' ? newName : p.name,
-            currentCode: result.html,
-            messages: [...p.messages, userMsg, assistantMsg], // Add both to ensure consistency
-            history: [...p.history, newHistoryItem],
-            updatedAt: Date.now()
-          };
+      setProjects(prev => {
+        const updated = prev.map(p => {
+          if (p.id === currentProjectId) {
+            return {
+              ...p,
+              name: newName !== 'Untitled Project' ? newName : p.name,
+              currentCode: result.html,
+              messages: [...p.messages, userMsg, assistantMsg], // Add both to ensure consistency
+              history: [...p.history, newHistoryItem],
+              updatedAt: Date.now()
+            };
+          }
+          return p;
+        });
+        
+        // Notify collaboration service of code update
+        if (currentProjectId) {
+           collaborationService.syncCode(currentProjectId, 'index.html', result.html);
         }
-        return p;
-      }));
+        return updated;
+      });
 
     } catch (error) {
        const errorMsg: Message = {
@@ -172,16 +260,25 @@ export default function App() {
   };
 
   const handleCodeChange = (newContent: string | undefined) => {
-    if (!newContent || !currentProject) return;
+    if (newContent === undefined || !currentProject) return;
     
-    // Merge back the specific file change into the main HTML
-    const mergedHtml = mergeCode(currentProject.currentCode, activeFile, newContent);
-    
-    setProjects(prev => prev.map(p => p.id === currentProjectId ? {
-      ...p,
-      currentCode: mergedHtml,
-      updatedAt: Date.now()
-    } : p));
+    // Only update if content is different to prevent loops
+    if (newContent !== activeFileContent) {
+      const mergedHtml = mergeCode(currentProject.currentCode, activeFile, newContent);
+      
+      setProjects(prev => prev.map(p => p.id === currentProjectId ? {
+        ...p,
+        currentCode: mergedHtml,
+        updatedAt: Date.now()
+      } : p));
+      
+      // Broadcast change
+      collaborationService.syncCode(currentProjectId!, activeFile, newContent);
+    }
+  };
+  
+  const handleCursorChange = (position: { lineNumber: number; column: number }) => {
+    collaborationService.syncCursor(activeFile, position);
   };
 
   const handleRename = () => {
@@ -228,21 +325,22 @@ export default function App() {
               <div 
                 key={p.id}
                 onClick={() => { setCurrentProjectId(p.id); setActiveTab('preview'); }}
-                className={`group flex items-center justify-between px-3 py-2 rounded-md text-sm cursor-pointer transition-all ${
+                className={`group flex items-center justify-between px-3 py-2.5 rounded-md cursor-pointer transition-all ${
                   p.id === currentProjectId 
                     ? 'bg-lovable-surface text-white' 
                     : 'text-lovable-textMuted hover:text-white hover:bg-lovable-surface/50'
                 }`}
               >
-                <div className="flex items-center truncate w-full">
-                  <span className="truncate flex-1">{p.name}</span>
+                <div className="flex flex-col min-w-0 flex-1 mr-2">
+                  <span className="truncate text-sm font-medium">{p.name}</span>
+                  <span className="truncate text-[10px] opacity-50">{timeAgo(p.updatedAt)}</span>
                 </div>
                 {p.id === currentProjectId && (
                   <button 
                     onClick={(e) => handleDeleteProject(e, p.id)}
-                    className="opacity-0 group-hover:opacity-100 p-1 hover:text-red-400 transition-opacity"
+                    className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-white/10 rounded hover:text-red-400 transition-all flex-shrink-0"
                   >
-                    <Trash2 size={12} />
+                    <Trash2 size={13} />
                   </button>
                 )}
               </div>
@@ -374,8 +472,27 @@ export default function App() {
                       {viewMode === 'split' ? <Maximize2 size={14} /> : <Columns size={14} />}
                     </button>
                   </div>
+                  
+                  {/* Collaboration Status & Actions */}
+                  <div className="flex items-center gap-3">
+                    {/* Active Collaborators */}
+                    <div className="flex items-center -space-x-2 mr-2">
+                      {collaborators.filter(c => c.id !== currentUser.id).map(c => (
+                        <div key={c.id} className="w-7 h-7 rounded-full border-2 border-[#09090b] flex items-center justify-center text-[10px] font-bold text-black relative" style={{ backgroundColor: c.color }} title={c.name}>
+                           {c.name.charAt(0)}
+                           <span className="absolute bottom-0 right-0 w-2 h-2 bg-green-500 border border-black rounded-full"></span>
+                        </div>
+                      ))}
+                      <div className="w-7 h-7 rounded-full border-2 border-[#09090b] bg-indigo-600 flex items-center justify-center text-[10px] font-bold text-white relative" title="You">
+                          {currentUser.name.charAt(0)}
+                          <span className="absolute bottom-0 right-0 w-2 h-2 bg-green-500 border border-black rounded-full"></span>
+                      </div>
+                      <div className="ml-3 flex items-center gap-1.5 px-2 py-1 bg-green-500/10 rounded-full border border-green-500/20">
+                        <Wifi size={10} className="text-green-500 animate-pulse" />
+                        <span className="text-[10px] font-medium text-green-400">Live</span>
+                      </div>
+                    </div>
 
-                  <div className="flex items-center gap-2">
                      <button 
                       onClick={() => window.open('https://replit.com/new', '_blank')}
                       className="flex items-center gap-2 bg-lovable-surface hover:bg-lovable-surfaceHighlight text-lovable-textDim hover:text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-all border border-transparent hover:border-lovable-border"
@@ -451,7 +568,9 @@ export default function App() {
                          <div className="flex-1 relative">
                             <CodeEditor 
                               code={activeFileContent} 
-                              onChange={handleCodeChange} 
+                              onChange={handleCodeChange}
+                              collaborators={collaborators.filter(c => c.id !== currentUser.id && c.file === activeFile)}
+                              onCursorChange={handleCursorChange}
                             />
                          </div>
                       </div>

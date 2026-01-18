@@ -1,3 +1,4 @@
+
 export interface Message {
   role: 'user' | 'assistant';
   content: string;
@@ -43,4 +44,14 @@ export interface VirtualFile {
   name: string;
   language: string;
   content: string;
+}
+
+// Collaboration Types
+export interface Collaborator {
+  id: string;
+  name: string;
+  color: string;
+  cursorPosition?: { lineNumber: number; column: number };
+  lastActive: number;
+  file?: string;
 }
